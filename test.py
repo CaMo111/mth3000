@@ -35,22 +35,25 @@ def get_overlaps(c1, c2):
         # --- NEW: ENFORCE EVENNESS ---
         # A valid relation requires that each point is on an even number of lines.
         # This eliminates the 96 cases that have no integer solutions.
-        if n00 % 2 == 0 and n10 % 2 == 0 and n01 % 2 == 0 and n11 % 2 == 0:
-            Mk_possible.append((n00, n10, n01, n11))
+        Mk_possible.append((n00, n10, n01, n11))
 
     return Mk_possible
 
 def construct_profiles(pairs):
     val = []
     for pair in pairs:
-        relA = construct_type_arrays(pair[0])
-        relB = construct_type_arrays(pair[1])
-        for weight_distribution1 in relA:
-            for weight_distribution2 in relB:
-                val.append(generate_configs(weight_distribution1, weight_distribution2))
-
+        # FIX: Lock the first relation to exactly one configuration (no permutations)
+        # This is what your professor meant!
+        weight_distribution1 = pair[0] 
+        
+        # We only generate all permutations for the second relation
+        relB = construct_type_arrays(pair[1]) 
+        
+        for weight_distribution2 in relB:
+            val.append(generate_configs(weight_distribution1, weight_distribution2))
 
     flatten = [element for row in val for element in row]
+    return flatten
 
     return flatten
 def get_neighbors(knet):
