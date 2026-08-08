@@ -3,6 +3,8 @@ from itertools import permutations, product
 from operator import itemgetter
 
 def get_overlaps(c1, c2):
+    if c1%2==1 or c2%2==1:
+        print('ERROR')
     Mk_possible = []
     min_overlap = max(0, c1 + c2 - 10)
     max_overlap = min(c1, c2)
@@ -11,7 +13,7 @@ def get_overlaps(c1, c2):
         n10 = c1 - n11
         n01 = c2 - n11 
         n00 = 10 - (n11+n10+n01)
-        if n00 % 2 == 0 and n10 % 2 == 0 and n01 % 2 == 0 and n11 % 2 == 0:
+        if (n00 % 2 == 0 and n10 % 2 == 0 and n01 % 2 == 0 and n11 % 2 == 0) or (n00 % 2 == 1 and n10 % 2 == 1 and n01 % 2 == 1 and n11 % 2 == 1):
             Mk_possible.append((n00, n10, n01, n11))
 
     return Mk_possible

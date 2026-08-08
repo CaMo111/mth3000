@@ -35,7 +35,7 @@ def get_overlaps(c1, c2):
         # --- NEW: ENFORCE EVENNESS ---
         # A valid relation requires that each point is on an even number of lines.
         # This eliminates the 96 cases that have no integer solutions.
-        if n00 % 2 == 0 and n10 % 2 == 0 and n01 % 2 == 0 and n11 % 2 == 0:
+        if (n00 % 2 == 0 and n10 % 2 == 0 and n01 % 2 == 0 and n11 % 2 == 0) or (n00 % 2 == 1 and n10 % 2 == 1 and n01 % 2 == 1 and n11 % 2 == 1):
             Mk_possible.append((n00, n10, n01, n11))
 
     return Mk_possible
