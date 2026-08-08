@@ -29,6 +29,7 @@ def get_orbit(base):
 
 # The exact 15 valid profiles allowed by the theorems
 WHITELIST = get_orbit((2,2,4,4,4)) | get_orbit((2,4,4,4,6)) | get_orbit((4,4,4,4,4))
+print(WHITELIST)
 
 class Relation:
     def __init__(self):
@@ -126,7 +127,7 @@ def main():
                         
 
 
-    #print(canonical_orbits)
+    # print(canonical_orbits)
     for item in canonical_orbits:
         print(item, '\n')
 
