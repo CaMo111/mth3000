@@ -47,6 +47,7 @@ def collapse(seed_pv):
             mincount+=1
             canonical_min = current
 
+
         perms = parallel_class_permutations(current)
         for vec in perms:
             if vec not in visited:
@@ -63,13 +64,40 @@ def collapse(seed_pv):
             visited.add(symdif)
             queue.append(symdif)
 
+        comp = even_complements_r1(current)
+        for vec_ in comp:
+            if vec_ not in visited:
+                visited.add(vec_)
+                queue.append(vec_)
+        # if comp not in visited:
+        #     visited.add(comp)
+        #     queue.append(comp)
+
     # print(f'total minimise count {mincount}')
-    # print(f'total visited {len(visited)}')
+    print(f'total visited {len(visited)}')
     return canonical_min, visited
 
-def complement(pv):
-    #TODO: implement complement behaviour
-    pass
+def even_complements_r1(pv):
+    chunks = [pv[i:i+4] for i in range(0, 20, 4)]
+    even_combos = []
+    for k in (0, 2, 4):
+        even_combos.extend(combinations(range(5), k))
+    results = set()
+    for combo in even_combos:
+        combo_set = set(combo)
+        new_vector = []
+        
+        for idx, chunk in enumerate(chunks):
+            if idx in combo_set:
+                # Swap index 0 <-> 1 and index 2 <-> 3
+                complemented_chunk = (chunk[1], chunk[0], chunk[3], chunk[2])
+                new_vector.extend(complemented_chunk)
+            else:
+                new_vector.extend(chunk)
+                
+        results.add(tuple(new_vector))
+        
+    return results
 
 def parallel_class_permutations(pv):
     # takes as input a single pv ie length 20 vector (n00, n10, n01, n11, ...) for i=1:5
