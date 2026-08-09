@@ -31,12 +31,11 @@ def construct_type_arrays(t):
 
 def construct_profiles(pairs):
     val = []
+    #relA = construct_type_arrays(pair[0])
     for pair in pairs:
-        relA = construct_type_arrays(pair[0])
         relB = construct_type_arrays(pair[1])
-        for weight_distribution1 in relA:
-            for weight_distribution2 in relB:
-                val.append(generate_configs(weight_distribution1, weight_distribution2))
+        for weight_distribution2 in relB:
+            val.append(generate_configs(pair[0], weight_distribution2))
 
     flatten = [element for row in val for element in row]
     return flatten

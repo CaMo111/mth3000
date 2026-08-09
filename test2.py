@@ -71,6 +71,7 @@ def explore_orbit(start_state):
         if is_valid:
             w1, w2 = get_relation_weights(state)
             if w1 not in WHITELIST or w2 not in WHITELIST:
+                print(w1, w2)
                 is_valid = False 
         
         neighbors = []

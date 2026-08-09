@@ -1,7 +1,110 @@
 from collections import Counter, deque 
 from itertools import permutations, product, combinations 
+import copy
+#from sage.all import PermutationGroup
 
 GLOBAL_POINTVECTOR = set()
+
+def isIllegal(pv):
+    chunks = [tuple(pv[i:i+4]) for i in range(0, 20, 4)]
+    rel1, rel2 = [], []
+    for tup_ in chunks:
+        rel1.append(tup_[1] + tup_[3])
+        rel2.append(tup_[2] + tup_[3])
+    
+    print(rel1, rel2)
+    # return true if rel1 or rel2 are a permutation of the illegal 2^3 4 6 
+    return 1 #rel1, rel2
+
+
+def run_collapse(globalset):
+    canonical_results = set()
+    unprocessed_pool = copy.deepcopy(globalset)
+    i=0
+    while len(unprocessed_pool) > 0:
+        i += 1 
+
+        curr = unprocessed_pool.pop()
+        currmin, currvisited = collapse(curr)
+        #print(currmin, currvisited, len(unprocessed_pool))
+        unprocessed_pool -= currvisited
+        canonical_results.add(currmin)
+        print(i, len(canonical_results), len(unprocessed_pool))
+
+
+def collapse(seed_pv):
+    # start with a seed point vector 
+    print('Starting collapse on seed vector', seed_pv)
+    queue = deque([seed_pv])
+    visited = {seed_pv} # initialise visited with just the seed 
+
+    canonical_min = seed_pv
+    mincount = 0
+    while queue:
+        current = queue.popleft()
+
+        if current < canonical_min:
+            mincount+=1
+            canonical_min = current
+
+        perms = parallel_class_permutations(current)
+        for vec in perms:
+            if vec not in visited:
+                visited.add(vec)
+                queue.append(vec)
+
+        r1r2swap = swap_r1_r2(current)
+        if r1r2swap not in visited:
+            visited.add(r1r2swap)
+            queue.append(r1r2swap)
+
+        symdif = symm_diff(current)
+        if symdif not in visited:
+            visited.add(symdif)
+            queue.append(symdif)
+
+    # print(f'total minimise count {mincount}')
+    # print(f'total visited {len(visited)}')
+    return canonical_min, visited
+
+def complement(pv):
+    #TODO: implement complement behaviour
+    pass
+
+def parallel_class_permutations(pv):
+    # takes as input a single pv ie length 20 vector (n00, n10, n01, n11, ...) for i=1:5
+    # outputs the 120 possible output permutations of swapping as a set
+    chunks = [tuple(pv[i:i+4]) for i in range(0, 20, 4)]
+    vecs = {tuple(x for c in perm for x in c) for perm in permutations(chunks)}
+    return vecs  # compiles all 5!=120 permutations of parallel classes of a single point vector (knet)
+
+def swap_r1_r2(pv):
+    # takes as input single pv length 20; chunks into each parallel class and swaps n10 with n01 ie idx 1 <-> 2 
+    # outputs single pv after transformation
+    chunks = [tuple(pv[i:i+4]) for i in range(0, 20, 4)]
+    ret = tuple()
+    for idx, tup in enumerate(chunks):
+        temp = list(tup)
+        temp[1], temp[2] = temp[2], temp[1]
+        tup_ = temp
+        ret += *tup_,
+
+    # print(ret)
+    return ret
+
+def symm_diff(pv):
+    # takes as input a single pv ie length 20 vector (n00, n10, n01, n11, ...) for i=1:5; chunks into each paralell class and then
+    # applies symmetric difference by replacing r2 by symm diff r1 and r2, ie n10 and n11 swap 
+    # outputs single pv after transformation
+    chunks = [tuple(pv[i:i+4]) for i in range(0, 20, 4)]
+    ret = tuple()
+    for idx, tup in enumerate(chunks):
+        temp = list(tup)
+        temp[1], temp[3] = temp[3], temp[1]
+        tup_ = temp
+        ret += *tup_,
+
+    return ret
 
 class Relation:
     def __init__(self):
@@ -20,20 +123,19 @@ def construct_intersections(w1, w2):
     return intersections
 
 def construct_pairs(relation1, relation2):
-    print(set(permutations(relation2)))
     for idx, value in enumerate(set(permutations(relation2))):
         relo1 = relation1 
         relo2 = list(value)
         M = []
-        #print(idx, relo1, relo2)
+
         for w1, w2 in zip(relo1,relo2):
             M.append(construct_intersections(w1,w2))
 
         # cartisian product to get all configurations of intersections for each parallel class 
+        # i think this is a bit dodgy 
         cart = product(*M)
         for val in cart:
             pv = tuple(num for group in val for num in group)
-            print(pv)
             GLOBAL_POINTVECTOR.add(pv)
 
 def main():
@@ -50,14 +152,16 @@ def main():
     for lst in pairs:
         construct_pairs(lst[0], lst[1])
 
-    #print(len(GLOBAL_POINTVECTOR))
-    #print(GLOBAL_POINTVECTOR)
-    #for item in GLOBAL_POINTVECTOR:
-    #    print(item)
-    print(len(GLOBAL_POINTVECTOR))
-    print(GLOBAL_POINTVECTOR)
+    my_iterator = iter(GLOBAL_POINTVECTOR)
+    next(my_iterator)
+    next(my_iterator)
+    next(my_iterator)
+    next(my_iterator)
+    # next(my_iterator)
+    next(my_iterator)
 
-
+    #collapse(next(my_iterator))  # Grabs the second item and passes it in
+    run_collapse(GLOBAL_POINTVECTOR)
 
 
 if __name__ == "__main__":

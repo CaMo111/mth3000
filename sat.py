@@ -1,169 +1,139 @@
-import itertools
-from pysat.solvers import Solver
-from pysat.card import CardEnc, EncType
+from collections import deque 
+from itertools import permutations, product, combinations 
 
-class DualRelation5NetSATSolver:
-    def __init__(self, n=10):
-        self.n = n
-        self.num_squares = 3  # 5-net corresponds to 3 MOLS (Rows, Cols + 3 Latin Squares)
-        self.var_map = {}
-        self.reverse_map = {}
-        self.next_var = 1
-        self.solver = Solver(name='cadical195')
-
-    def get_var(self, s, r, c, v):
-        """Maps (square s, row r, col c, value v) to a unique SAT variable."""
-        key = (s, r, c, v)
-        if key not in self.var_map:
-            self.var_map[key] = self.next_var
-            self.reverse_map[self.next_var] = key
-            self.next_var += 1
-        return self.var_map[key]
-
-    def new_aux_var(self):
-        """Allocates an auxiliary variable for CNF conversion."""
-        v = self.next_var
-        self.next_var += 1
-        return v
-
-    def encode_5net_base(self):
-        """Encodes 3 MOLS of order 10 (Cell, Row, Col uniqueness + Pairwise Orthogonality)."""
-        # 1. Cell, Row, and Column constraints for each of the 3 Latin Squares
-        for s in range(self.num_squares):
-            for r in range(self.n):
-                for c in range(self.n):
-                    # Each cell gets exactly 1 symbol
-                    lits = [self.get_var(s, r, c, v) for v in range(self.n)]
-                    cnf = CardEnc.equals(lits=lits, bound=1, top_id=self.next_var - 1, encoding=EncType.seqcounter)
-                    self.next_var = cnf.top_id + 1
-                    for cl in cnf.clauses: self.solver.add_clause(cl)
-
-            for r in range(self.n):
-                for v in range(self.n):
-                    # Each row gets symbol v exactly once
-                    lits = [self.get_var(s, r, c, v) for c in range(self.n)]
-                    cnf = CardEnc.equals(lits=lits, bound=1, top_id=self.next_var - 1, encoding=EncType.seqcounter)
-                    self.next_var = cnf.top_id + 1
-                    for cl in cnf.clauses: self.solver.add_clause(cl)
-
-            for c in range(self.n):
-                for v in range(self.n):
-                    # Each column gets symbol v exactly once
-                    lits = [self.get_var(s, r, c, v) for r in range(self.n)]
-                    cnf = CardEnc.equals(lits=lits, bound=1, top_id=self.next_var - 1, encoding=EncType.seqcounter)
-                    self.next_var = cnf.top_id + 1
-                    for cl in cnf.clauses: self.solver.add_clause(cl)
-
-        # 2. Pairwise Orthogonality between all pairs of Latin Squares (LS1-LS2, LS1-LS3, LS2-LS3)
-        for s1, s2 in itertools.combinations(range(self.num_squares), 2):
-            for v1 in range(self.n):
-                for v2 in range(self.n):
-                    pair_lits = []
-                    for r in range(self.n):
-                        for c in range(self.n):
-                            x1 = self.get_var(s1, r, c, v1)
-                            x2 = self.get_var(s2, r, c, v2)
-                            y = self.new_aux_var()
-                            pair_lits.append(y)
-                            self.solver.add_clause([-y, x1])
-                            self.solver.add_clause([-y, x2])
-                            self.solver.add_clause([-x1, -x2, y])
-
-                    # Every ordered pair (v1, v2) appears in exactly 1 cell
-                    cnf = CardEnc.equals(lits=pair_lits, bound=1, top_id=self.next_var - 1, encoding=EncType.seqcounter)
-                    self.next_var = cnf.top_id + 1
-                    for cl in cnf.clauses: self.solver.add_clause(cl)
-
-    def add_dual_relation_constraints(self, rel1_lines, rel2_lines):
-        """
-        Enforces that every point (cell r,c) is incident to an EVEN number of lines 
-        in Relation 1 AND an EVEN number of lines in Relation 2.
-        
-        rel1_lines and rel2_lines are dicts specifying active relational line indices:
-        { 'rows': set(), 'cols': set(), 'sq0': set(), 'sq1': set(), 'sq2': set() }
-        """
-        for rel_index, rel_lines in enumerate([rel1_lines, rel2_lines]):
-            for r in range(self.n):
-                for c in range(self.n):
-                    # Static contribution from Row and Column parallel classes
-                    fixed_count = (1 if r in rel_lines['rows'] else 0) + (1 if c in rel_lines['cols'] else 0)
-                    
-                    # Dynamic literals from the 3 Latin Squares
-                    active_lits = []
-                    for s in range(3):
-                        sq_key = f'sq{s}'
-                        for v in rel_lines[sq_key]:
-                            active_lits.append(self.get_var(s, r, c, v))
-                    
-                    # Enforce sum(active_lits) + fixed_count = 0 (mod 2)
-                    self._add_parity_clause(active_lits, target_parity=(fixed_count % 2))
-
-    def _add_parity_clause(self, lits, target_parity):
-        """Encodes that an even (or odd) number of literals in 'lits' are true."""
-        # Simple parity chain using auxiliary XOR variables
-        if not lits:
-            return
-        
-        # Enforce parity sum over active literals
-        # (For small length lists of active literals per cell, generate CNF parity directly)
-        for p in itertools.product([False, True], repeat=len(lits)):
-            # If assignment parity doesn't match target_parity, block it
-            if (sum(p) % 2) != target_parity:
-                clause = [-lits[i] if p[i] else lits[i] for i in range(len(lits))]
-                self.solver.add_clause(clause)
-
-    def add_symmetry_breaking(self):
-        """Fixes standard form for Square 0 to prune redundant isomorphic branches."""
-        for c in range(self.n):
-            self.solver.add_clause([self.get_var(0, 0, c, c)])
-        for r in range(1, self.n):
-            self.solver.add_clause([self.get_var(0, r, 0, r)])
-
-    def solve_overlap_case(self, rel1_spec, rel2_spec):
-        print("Encoding 5-Net base constraints...")
-        self.encode_5net_base()
-        self.add_symmetry_breaking()
-        
-        print("Adding Dual Relation parity constraints...")
-        self.add_dual_relation_constraints(rel1_spec, rel2_spec)
-        
-        print("Running CaDiCaL SAT Solver...")
-        if self.solver.solve():
-            print("\n>>> SOLUTION FOUND! 5-net satisfies both relations. <<<")
-            model = set(self.solver.get_model())
-            # Output MOLS squares
-            for s in range(3):
-                print(f"\n--- Latin Square {s + 1} ---")
-                for r in range(self.n):
-                    row_vals = [v for c in range(self.n) for v in range(self.n) if self.get_var(s, r, c, v) in model]
-                    print(" ".join(f"{x:2d}" for x in row_vals))
-            return True
-        else:
-            print("\n>>> UNSATISFIABLE: No 5-net exists for this overlap template. <<<")
-            return False
-
-# Example: Running Case with Relation A (2^2 4^3) and Relation C (4^5)
-if __name__ == "__main__":
-    solver = DualRelation5NetSATSolver(n=10)
+# --- 1. WHITELIST GENERATION ---
+def get_orbit(base):
+    orbit = set()
+    n = len(base)
+    # 0 complements
+    orbit.add(tuple(sorted(base)))
     
-    # Define active relational lines for Relation 1 (Type 2^2 4^3)
-    # Weights per class: Rows=2, Cols=2, SQ0=4, SQ1=4, SQ2=4
-    rel1 = {
-        'rows': {0, 1},
-        'cols': {0, 1},
-        'sq0': {0, 1, 2, 3},
-        'sq1': {0, 1, 2, 3},
-        'sq2': {0, 1, 2, 3}
-    }
+    # 2 complements
+    for i in range(n):
+        for j in range(i+1, n):
+            tmp = list(base)
+            tmp[i] = 10 - tmp[i]
+            tmp[j] = 10 - tmp[j]
+            orbit.add(tuple(sorted(tmp)))
+            
+    # 4 complements
+    for i in range(n):
+        tmp = [10 - x for x in base]
+        tmp[i] = 10 - tmp[i] 
+        orbit.add(tuple(sorted(tmp)))
+        
+    return orbit
 
-    # Define active relational lines for Relation 2 (Type 4^5)
-    # Weights per class: Rows=4, Cols=4, SQ0=4, SQ1=4, SQ2=4
-    rel2 = {
-        'rows': {0, 1, 2, 3},
-        'cols': {0, 1, 2, 3},
-        'sq0': {2, 3, 4, 5},
-        'sq1': {2, 3, 4, 5},
-        'sq2': {2, 3, 4, 5}
-    }
+WHITELIST = get_orbit((2,2,4,4,4)) | get_orbit((2,4,4,4,6)) | get_orbit((4,4,4,4,4))
 
-    solver.solve_overlap_case(rel1, rel2)
+
+# --- 2. BFS ORBIT EXPLORATION ---
+SEEN_STATES = set()
+
+def explore_orbit(start_state):
+    canonical_start = tuple(sorted(start_state))
+    if canonical_start in SEEN_STATES:
+        return None
+        
+    orbit_seen = {canonical_start}
+    queue = deque([canonical_start])
+    
+    canonical_min = canonical_start
+    is_orbit_valid = True
+    
+    while queue:
+        state = queue.popleft()
+        
+        # Check Whitelist
+        w1 = tuple(sorted(b[1] + b[3] for b in state))
+        w2 = tuple(sorted(b[2] + b[3] for b in state))
+        
+        if w1 not in WHITELIST or w2 not in WHITELIST:
+            is_orbit_valid = False
+            # CRITICAL FIX: DO NOT BREAK OR PRUNE HERE!
+            # The entire orbit must be generated and added to SEEN_STATES
+            # otherwise the orbit fractures, causing duplicate false-positives later.
+        
+        neighbors = []
+        
+        # Action 2: Exchange relation 1 and relation 2
+        neighbors.append(tuple((b[0], b[2], b[1], b[3]) for b in state))
+        
+        # Action 3: Replace R2 by symmetric difference (R1 ^ R2)
+        neighbors.append(tuple((b[0], b[3], b[2], b[1]) for b in state))
+        
+        # Action 4: Complement R1 on an even number of parallel classes
+        for i, j in combinations(range(5), 2):
+            nxt = list(state)
+            nxt[i] = (nxt[i][1], nxt[i][0], nxt[i][3], nxt[i][2])
+            nxt[j] = (nxt[j][1], nxt[j][0], nxt[j][3], nxt[j][2])
+            neighbors.append(tuple(nxt))
+            
+        for nxt in neighbors:
+            # S5 Permutation Action is perfectly quotiented out by sorting the classes
+            can_nxt = tuple(sorted(nxt))
+            if can_nxt not in orbit_seen:
+                orbit_seen.add(can_nxt)
+                queue.append(can_nxt)
+                if can_nxt < canonical_min:
+                    canonical_min = can_nxt
+                    
+    # Update global tracking ONLY once the entire orbit is constructed
+    SEEN_STATES.update(orbit_seen)
+    
+    return canonical_min if is_orbit_valid else None
+
+
+# --- 3. RAW PAIR GENERATION ---
+class Relation:
+    def __init__(self):
+        self.A = (2, 2, 4, 4, 4)
+        self.B = (2, 4, 4, 4, 6)
+        self.C = (4, 4, 4, 4, 4)
+
+def construct_intersections(w1, w2):
+    A_min = max(0, w1 + w2 - 10)
+    A_max = min(w1, w2)
+    return [
+        (10 - (w1 + w2 - A), w1 - A, w2 - A, A)
+        for A in range(A_min, A_max + 1)
+    ]
+
+def main():
+    relations = Relation()
+    pairs = [
+        (relations.A, relations.A),
+        (relations.A, relations.B),
+        (relations.A, relations.C),
+        (relations.B, relations.B),
+        (relations.B, relations.C),
+        (relations.C, relations.C),
+    ]
+    
+    canonical_minimums = set()
+    total_raw = 0
+    
+    for relo1, relo2 in pairs:
+        for perm_relo2 in set(permutations(relo2)):
+            M = [construct_intersections(w1, w2) for w1, w2 in zip(relo1, perm_relo2)]
+            
+            for val in product(*M):
+                total_raw += 1
+                
+                # CRITICAL FIX: Keep as a tuple of tuples. Do not flatten!
+                pv = tuple(tuple(group) for group in val)
+                
+                if tuple(sorted(pv)) not in SEEN_STATES:
+                    result = explore_orbit(pv)
+                    if result is not None:
+                        canonical_minimums.add(result)
+                        
+    print(f"Total raw combinations generated: {total_raw}")
+    print(f"Total explored internal states: {len(SEEN_STATES)}")
+    print(f"Valid Canonical Minimums: {len(canonical_minimums)}\n")
+    
+    for item in sorted(canonical_minimums):
+        print(item)
+
+if __name__ == "__main__":
+    main()
