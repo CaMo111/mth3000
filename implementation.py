@@ -47,7 +47,6 @@ def collapse(seed_pv):
             mincount+=1
             canonical_min = current
 
-
         perms = parallel_class_permutations(current)
         for vec in perms:
             if vec not in visited:
@@ -144,10 +143,17 @@ def construct_intersections(w1, w2):
     A_min = max(0, w1 + w2 - 10)
     A_max = min(w1, w2)
     # in the order of (n00, n10, n01, n11)
-    intersections = [
-        [10 - (w1 + w2 - A), w1 - A, w2 - A, A]
-        for A in range(A_min, A_max + 1)
-    ]
+    if w1 != w2:
+        intersections = [
+            [10 - (w1 + w2 - A), w1 - A, w2 - A, A]
+            for A in range(A_min, A_max + 1)
+        ]
+    else:
+        intersections = [
+            [10 - (w1 + w2 - A), w1 - A, w2 - A, A]
+            for A in range(A_min, A_max)
+        ]
+
     return intersections
 
 def construct_pairs(relation1, relation2):
@@ -180,13 +186,7 @@ def main():
     for lst in pairs:
         construct_pairs(lst[0], lst[1])
 
-    my_iterator = iter(GLOBAL_POINTVECTOR)
-    next(my_iterator)
-    next(my_iterator)
-    next(my_iterator)
-    next(my_iterator)
-    # next(my_iterator)
-    next(my_iterator)
+    print('ponitvec length=', len(GLOBAL_POINTVECTOR))
 
     #collapse(next(my_iterator))  # Grabs the second item and passes it in
     run_collapse(GLOBAL_POINTVECTOR)
