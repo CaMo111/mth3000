@@ -2,8 +2,8 @@
 # from sage.combinat.integer_vector import IntegerVectors
 
 # Example: w1 = 4, w2 = 6, total_lines = 10
-w1 = 4
-w2 = 6
+w1 = 2
+w2 = 2
 # We want vectors [A, B, C, D] summing to 10 where (A+B)=4 and (A+C)=6
 
 # Instead of raw bounds, Sage lets you generate constraints directly:
