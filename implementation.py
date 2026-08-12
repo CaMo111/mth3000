@@ -29,8 +29,18 @@ def run_collapse(globalset):
         #print(currmin, currvisited, len(unprocessed_pool))
         unprocessed_pool -= currvisited
         canonical_results.add(currmin)
+        print('min=', currmin)
         print(i, len(canonical_results), len(unprocessed_pool))
 
+def is_valid_chunk(chunk):
+    n00, n10, n01, n11 = chunk
+    w1 = n10 + n11
+    w2 = n01 + n11
+    return w1 > 0 and w2 > 0   # neither relation is empty in this class
+
+def is_valid(pv):
+    chunks = [pv[i:i+4] for i in range(0, 20, 4)]
+    return all(is_valid_chunk(c) for c in chunks)
 
 def collapse(seed_pv):
     # start with a seed point vector 
@@ -42,6 +52,8 @@ def collapse(seed_pv):
     mincount = 0
     while queue:
         current = queue.popleft()
+        if not is_valid(current):
+            print('current not valid', current)
 
         if current < canonical_min:
             mincount+=1
@@ -49,23 +61,28 @@ def collapse(seed_pv):
 
         perms = parallel_class_permutations(current)
         for vec in perms:
-            if vec not in visited:
+            if vec not in visited and is_valid(vec):
                 visited.add(vec)
                 queue.append(vec)
 
         r1r2swap = swap_r1_r2(current)
-        if r1r2swap not in visited:
+        if r1r2swap not in visited and is_valid(r1r2swap):
             visited.add(r1r2swap)
             queue.append(r1r2swap)
 
         symdif = symm_diff(current)
-        if symdif not in visited:
+        if not is_valid(symdif):
+            print('symm diff constructed invalid', symdif)
+
+        if symdif not in visited and is_valid(symdif):
             visited.add(symdif)
             queue.append(symdif)
 
         comp = even_complements_r1(current)
         for vec_ in comp:
-            if vec_ not in visited:
+            if not is_valid(vec_):
+                print('vec not valid', vec_)
+            if vec_ not in visited and is_valid(vec_):
                 visited.add(vec_)
                 queue.append(vec_)
         # if comp not in visited:
@@ -175,18 +192,17 @@ def construct_pairs(relation1, relation2):
 def main():
     relations = Relation()
     pairs = [
-        [relations.A, relations.A],
+        [relations.A, relations.B],
         [relations.A, relations.B],
         [relations.A, relations.C],
         [relations.B, relations.B],
         [relations.B, relations.C],
-        [relations.C, relations.C],
+        [relations.C, relations.C]
     ]
     #print(combinations((relations.A, relations.B, relations.C)))
     for lst in pairs:
         construct_pairs(lst[0], lst[1])
 
-    print('ponitvec length=', len(GLOBAL_POINTVECTOR))
 
     #collapse(next(my_iterator))  # Grabs the second item and passes it in
     run_collapse(GLOBAL_POINTVECTOR)
