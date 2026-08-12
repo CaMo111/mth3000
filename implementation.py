@@ -1,6 +1,7 @@
 from collections import Counter, deque 
 from itertools import permutations, product, combinations 
 import copy
+import sys
 #from sage.all import PermutationGroup
 
 class PointVector:
@@ -16,7 +17,7 @@ class PointVector:
         return hash(self.v)
     
     def __repr__(self):
-        return f"PointVector \n vector={self.v} \n history={self.history} \n"
+        return f"PointVector={self.v} \n HISTORY={self.history} \n"
 
     def __getitem__(self, item):
         return self.v[item]
@@ -53,7 +54,7 @@ def isIllegal(pv):
     return 1 #rel1, rel2
 
 
-def run_collapse(globalset):
+def run_collapse(globalset, f):
     canonical_results = set()
     unprocessed_pool = copy.deepcopy(globalset)
     i=0
@@ -66,6 +67,8 @@ def run_collapse(globalset):
         unprocessed_pool -= currvisited
         canonical_results.add(currmin)
         print('min=', currmin)
+        f.write(f'MIN={currmin.v}\n')
+        f.flush()
         print(i, len(canonical_results), len(unprocessed_pool))
 
 def is_valid_chunk(chunk):
@@ -137,8 +140,10 @@ def even_complements_r1(pv):
                 new_vector.extend(complemented_chunk)
             else:
                 new_vector.extend(chunk)
-                
-        results.add(PointVector(tuple(new_vector), pv.history, 'Complement'))
+
+        clean =  PointVector(tuple(new_vector), pv.history, 'Complement')
+        if is_valid(clean):
+            results.add(clean)
         
     return results
 
@@ -222,36 +227,37 @@ def construct_pairs(relation1, relation2):
             GLOBAL_POINTVECTOR.add(pv)
 
 def main():
-    relations = Relation()
-    pairs = [
-        [relations.A, relations.B],
-        [relations.A, relations.B],
-        [relations.A, relations.C],
-        [relations.B, relations.B],
-        [relations.B, relations.C],
-        [relations.C, relations.C]
-    ]
-    #print(combinations((relations.A, relations.B, relations.C)))
-    for lst in pairs:
-        construct_pairs(lst[0], lst[1])
+    with open("logs.txt", "w") as f:
+        relations = Relation()
+        pairs = [
+            # [relations.A, relations.A],
+            [relations.A, relations.B],
+            # [relations.A, relations.C],
+            # [relations.B, relations.B],
+            # [relations.B, relations.C],
+            # [relations.C, relations.C]
+        ]
+        #print(combinations((relations.A, relations.B, relations.C)))
+        for lst in pairs:
+            construct_pairs(lst[0], lst[1])
 
-    #collapse(next(my_iterator))  # Grabs the second item and passes it in
-    new_global_set = set()
-    for item in GLOBAL_POINTVECTOR:
-        tmp = PointVector(item, None)
-        new_global_set.add(tmp)
+        #collapse(next(my_iterator))  # Grabs the second item and passes it in
+        new_global_set = set()
+        for item in GLOBAL_POINTVECTOR:
+            tmp = PointVector(item, None)
+            new_global_set.add(tmp)
+            
+        GLOBAL_POINTVECTOR2 = new_global_set
+
+        for item2 in GLOBAL_POINTVECTOR2:
+            print(item2)
         
-    GLOBAL_POINTVECTOR2 = new_global_set
+        run_collapse(GLOBAL_POINTVECTOR2, f)
 
-    for item2 in GLOBAL_POINTVECTOR2:
-        print(item2)
-    
-    run_collapse(GLOBAL_POINTVECTOR2)
-
-    # x = PointVector((6, 0, 2, 2, 4, 2, 4, 0, 6, 2, 0, 2, 5, 1, 1, 3, 4, 0, 2, 4), None)
-    # print(x)
-    # y = PointVector((4, 2, 4, 0, 3, 1, 3, 3, 5, 3, 1, 1, 2, 4, 4, 0, 2, 4, 2, 2), x.history, 'permute')
-    # print(y)
+        # x = PointVector((6, 0, 2, 2, 4, 2, 4, 0, 6, 2, 0, 2, 5, 1, 1, 3, 4, 0, 2, 4), None)
+        # print(x)
+        # y = PointVector((4, 2, 4, 0, 3, 1, 3, 3, 5, 3, 1, 1, 2, 4, 4, 0, 2, 4, 2, 2), x.history, 'permute')
+        # print(y)
 
 if __name__ == "__main__":
     main()
