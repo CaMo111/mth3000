@@ -3,6 +3,42 @@ from itertools import permutations, product, combinations
 import copy
 #from sage.all import PermutationGroup
 
+class PointVector:
+    def __init__(self, v, hist: list, rule='init'):
+        # rule = 1. permute, 2 r1r2swap 3. symdiff 4.even complement
+        self.v = v
+        if hist != None:
+            self.history = hist + [v, rule]
+        else:
+            self.history = [v, rule]
+
+    def __hash__(self):
+        return hash(self.v)
+    
+    def __repr__(self):
+        return f"PointVector \n vector={self.v} \n history={self.history} \n"
+
+    def __getitem__(self, item):
+        return self.v[item]
+
+    # --- MAKES ITERATION & LENGTH WORK ---
+    def __iter__(self):
+        return iter(self.v)
+
+    def __len__(self):
+        return len(self.v)
+
+    # --- MAKES COMPARISONS WORK (for canonical_min check) ---
+    def __lt__(self, other):
+        if isinstance(other, PointVector):
+            return self.v < other.v
+        return self.v < other
+
+    def __eq__(self, other):
+        if isinstance(other, PointVector):
+            return self.v == other.v
+        return self.v == other
+
 GLOBAL_POINTVECTOR = set()
 
 def isIllegal(pv):
@@ -44,7 +80,7 @@ def is_valid(pv):
 
 def collapse(seed_pv):
     # start with a seed point vector 
-    print('Starting collapse on seed vector', seed_pv)
+    print('Starting collapse on seed vector', seed_pv, type(seed_pv))
     queue = deque([seed_pv])
     visited = {seed_pv} # initialise visited with just the seed 
 
@@ -71,25 +107,16 @@ def collapse(seed_pv):
             queue.append(r1r2swap)
 
         symdif = symm_diff(current)
-        if not is_valid(symdif):
-            print('symm diff constructed invalid', symdif)
-
-        if symdif not in visited and is_valid(symdif):
+        if symdif not in visited and symdif != None: #none implies invalidly created thingy
             visited.add(symdif)
             queue.append(symdif)
 
         comp = even_complements_r1(current)
         for vec_ in comp:
-            if not is_valid(vec_):
-                print('vec not valid', vec_)
-            if vec_ not in visited and is_valid(vec_):
+            if vec_ not in visited:
                 visited.add(vec_)
                 queue.append(vec_)
-        # if comp not in visited:
-        #     visited.add(comp)
-        #     queue.append(comp)
 
-    # print(f'total minimise count {mincount}')
     print(f'total visited {len(visited)}')
     return canonical_min, visited
 
@@ -111,7 +138,7 @@ def even_complements_r1(pv):
             else:
                 new_vector.extend(chunk)
                 
-        results.add(tuple(new_vector))
+        results.add(PointVector(tuple(new_vector), pv.history, 'Complement'))
         
     return results
 
@@ -119,7 +146,7 @@ def parallel_class_permutations(pv):
     # takes as input a single pv ie length 20 vector (n00, n10, n01, n11, ...) for i=1:5
     # outputs the 120 possible output permutations of swapping as a set
     chunks = [tuple(pv[i:i+4]) for i in range(0, 20, 4)]
-    vecs = {tuple(x for c in perm for x in c) for perm in permutations(chunks)}
+    vecs = {PointVector(tuple(x for c in perm for x in c), pv.history, 'Permute') for perm in permutations(chunks)}
     return vecs  # compiles all 5!=120 permutations of parallel classes of a single point vector (knet)
 
 def swap_r1_r2(pv):
@@ -133,8 +160,9 @@ def swap_r1_r2(pv):
         tup_ = temp
         ret += *tup_,
 
+    retp_ = PointVector(ret, pv.history, 'Permute')
     # print(ret)
-    return ret
+    return retp_
 
 def symm_diff(pv):
     # takes as input a single pv ie length 20 vector (n00, n10, n01, n11, ...) for i=1:5; chunks into each paralell class and then
@@ -148,7 +176,11 @@ def symm_diff(pv):
         tup_ = temp
         ret += *tup_,
 
-    return ret
+    retp_ = PointVector(ret, pv.history, 'SymDiff')
+    if is_valid(retp_):
+        return retp_
+    else:
+        return None
 
 class Relation:
     def __init__(self):
@@ -203,10 +235,23 @@ def main():
     for lst in pairs:
         construct_pairs(lst[0], lst[1])
 
-
     #collapse(next(my_iterator))  # Grabs the second item and passes it in
-    run_collapse(GLOBAL_POINTVECTOR)
+    new_global_set = set()
+    for item in GLOBAL_POINTVECTOR:
+        tmp = PointVector(item, None)
+        new_global_set.add(tmp)
+        
+    GLOBAL_POINTVECTOR2 = new_global_set
 
+    for item2 in GLOBAL_POINTVECTOR2:
+        print(item2)
+    
+    run_collapse(GLOBAL_POINTVECTOR2)
+
+    # x = PointVector((6, 0, 2, 2, 4, 2, 4, 0, 6, 2, 0, 2, 5, 1, 1, 3, 4, 0, 2, 4), None)
+    # print(x)
+    # y = PointVector((4, 2, 4, 0, 3, 1, 3, 3, 5, 3, 1, 1, 2, 4, 4, 0, 2, 4, 2, 2), x.history, 'permute')
+    # print(y)
 
 if __name__ == "__main__":
     main()
