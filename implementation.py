@@ -63,13 +63,17 @@ def run_collapse(globalset, f):
 
         curr = unprocessed_pool.pop()
         currmin, currvisited = collapse(curr)
-        #print(currmin, currvisited, len(unprocessed_pool))
-        unprocessed_pool -= currvisited
-        canonical_results.add(currmin)
-        print('min=', currmin)
-        f.write(f'MIN={currmin.v}\n')
-        f.flush()
-        print(i, len(canonical_results), len(unprocessed_pool))
+        if currmin == None:
+            unprocessed_pool -= currvisited
+            print('invalid seed')
+            print(i, len(canonical_results), len(unprocessed_pool))
+        else:
+            unprocessed_pool -= currvisited
+            canonical_results.add(currmin)
+            print('min=', currmin)
+            f.write(f'MIN={currmin.v}\n')
+            f.flush()
+            print(i, len(canonical_results), len(unprocessed_pool))
 
 def is_valid_chunk(chunk):
     n00, n10, n01, n11 = chunk
@@ -93,6 +97,7 @@ def collapse(seed_pv):
         current = queue.popleft()
         if not is_valid(current):
             print('current not valid', current)
+            return None, visited
 
         if current < canonical_min:
             mincount+=1
@@ -100,17 +105,17 @@ def collapse(seed_pv):
 
         perms = parallel_class_permutations(current)
         for vec in perms:
-            if vec not in visited and is_valid(vec):
+            if vec not in visited:
                 visited.add(vec)
                 queue.append(vec)
 
         r1r2swap = swap_r1_r2(current)
-        if r1r2swap not in visited and is_valid(r1r2swap):
+        if r1r2swap not in visited:
             visited.add(r1r2swap)
             queue.append(r1r2swap)
 
         symdif = symm_diff(current)
-        if symdif not in visited and symdif != None: #none implies invalidly created thingy
+        if symdif not in visited:
             visited.add(symdif)
             queue.append(symdif)
 
@@ -126,8 +131,8 @@ def collapse(seed_pv):
 def even_complements_r1(pv):
     chunks = [pv[i:i+4] for i in range(0, 20, 4)]
     even_combos = []
-    for k in (0, 2, 4):
-        even_combos.extend(combinations(range(5), k))
+    # for k in (0, 2, 4):
+    even_combos.extend(combinations(range(5), 2))
     results = set()
     for combo in even_combos:
         combo_set = set(combo)
@@ -142,8 +147,8 @@ def even_complements_r1(pv):
                 new_vector.extend(chunk)
 
         clean =  PointVector(tuple(new_vector), pv.history, 'Complement')
-        if is_valid(clean):
-            results.add(clean)
+        # if is_valid(clean):
+        results.add(clean)
         
     return results
 
@@ -165,7 +170,7 @@ def swap_r1_r2(pv):
         tup_ = temp
         ret += *tup_,
 
-    retp_ = PointVector(ret, pv.history, 'Permute')
+    retp_ = PointVector(ret, pv.history, 'R1/R2 Swap')
     # print(ret)
     return retp_
 
@@ -182,10 +187,10 @@ def symm_diff(pv):
         ret += *tup_,
 
     retp_ = PointVector(ret, pv.history, 'SymDiff')
-    if is_valid(retp_):
-        return retp_
-    else:
-        return None
+    # if is_valid(retp_):
+    return retp_
+    # else:
+    #     return None
 
 class Relation:
     def __init__(self):
@@ -250,7 +255,7 @@ def main():
         GLOBAL_POINTVECTOR2 = new_global_set
 
         for item2 in GLOBAL_POINTVECTOR2:
-            print(item2)
+            print(item2, is_valid(item2))
         
         run_collapse(GLOBAL_POINTVECTOR2, f)
 
