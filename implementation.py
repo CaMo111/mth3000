@@ -2,7 +2,6 @@ from collections import Counter, deque
 from itertools import permutations, product, combinations 
 import copy
 import sys
-#from sage.all import PermutationGroup
 
 class PointVector:
     def __init__(self, v, hist: list, rule='init'):
@@ -42,16 +41,38 @@ class PointVector:
 
 GLOBAL_POINTVECTOR = set()
 
-def isIllegal(pv):
+LEGAL = [
+(2,2,4,4,4),
+(2,4,4,4,6),
+(4,4,4,4,4)
+]
+
+WEIGHTDISTRIBUTIONS = []
+
+def normalize_profile(profile):
+    normalized = [min(x, 10 - x) for x in profile]
+    return sorted(normalized)
+
+def isValidSymdiffProfile(pv):
     chunks = [tuple(pv[i:i+4]) for i in range(0, 20, 4)]
-    rel1, rel2 = [], []
+    profile = tuple(sorted(chunk[1] + chunk[2] for chunk in chunks))
+    # print('profile=', normalize_profile(profile))
+    # print('normalised relations', normalize_profile(list(profile)), normalize_profile(LEGAL[0]), normalize_profile(LEGAL[1]), normalize_profile(LEGAL[2]))
+    # need to ensure profile after symmdiff still retains relational structure? 
+    if normalize_profile(list(profile)) == normalize_profile(LEGAL[0]) or normalize_profile(list(profile)) == normalize_profile(LEGAL[1]) or normalize_profile(list(profile)) == normalize_profile(LEGAL[2]):
+        #print('valid')
+        return True
+    else:
+        return False
+    # return (profile in LEGAL, profile)
+
+def isEvenIntersection(pv):
+    chunks = [tuple(pv[i:i+4]) for i in range(0, 20, 4)]
+    ev = 0
     for tup_ in chunks:
-        rel1.append(tup_[1] + tup_[3])
-        rel2.append(tup_[2] + tup_[3])
+        ev += tup_[3]
     
-    print(rel1, rel2)
-    # return true if rel1 or rel2 are a permutation of the illegal 2^3 4 6 
-    return 1 #rel1, rel2
+    return not bool(ev%2) # 0 returns True because it's even
 
 
 def run_collapse(globalset, f):
@@ -95,6 +116,13 @@ def collapse(seed_pv):
     mincount = 0
     while queue:
         current = queue.popleft()
+        if isEvenIntersection(current)==False:
+            print('Odd intersection', isEvenIntersection(current))
+        
+        if not isValidSymdiffProfile(current):
+            print('curr symdiff corrupt', current)
+            return None, visited
+
         if not is_valid(current):
             print('current not valid', current)
             return None, visited
@@ -235,12 +263,12 @@ def main():
     with open("logs.txt", "w") as f:
         relations = Relation()
         pairs = [
-            # [relations.A, relations.A],
+            [relations.A, relations.A],
             [relations.A, relations.B],
-            # [relations.A, relations.C],
-            # [relations.B, relations.B],
-            # [relations.B, relations.C],
-            # [relations.C, relations.C]
+            [relations.A, relations.C],
+            [relations.B, relations.B],
+            [relations.B, relations.C],
+            [relations.C, relations.C]
         ]
         #print(combinations((relations.A, relations.B, relations.C)))
         for lst in pairs:
@@ -251,13 +279,33 @@ def main():
         for item in GLOBAL_POINTVECTOR:
             tmp = PointVector(item, None)
             new_global_set.add(tmp)
+
+        filter_parity = set()
+        for item_ in new_global_set:
+            if isEvenIntersection(item_):
+                filter_parity.add(item_)
             
         GLOBAL_POINTVECTOR2 = new_global_set
+        GLOBAL_POINTVECTOR3 = filter_parity
 
-        for item2 in GLOBAL_POINTVECTOR2:
-            print(item2, is_valid(item2))
+        # for vec in GLOBAL_POINTVECTOR3:
+        #     chunks = [tuple(vec[i:i+4]) for i in range(0, 20, 4)]
+        #     tupr1 = tuple()
+        #     tupr2 = tuple()
+        #     for chunk in chunks:
+        #         print(chunk)
+        #         tupr1 += (chunk[1] + chunk[3],)
+        #         tupr2 += (chunk[2] + chunk[3],)
+        #     WEIGHTDISTRIBUTIONS.append(tupr1)
+        #     WEIGHTDISTRIBUTIONS.append(tupr2)
+
+    
+        # print(len(GLOBAL_POINTVECTOR2), len(GLOBAL_POINTVECTOR3))
+
+        # # for item2 in GLOBAL_POINTVECTOR2:
+        # #     print(isEvenIntersection(item2))
         
-        run_collapse(GLOBAL_POINTVECTOR2, f)
+        run_collapse(GLOBAL_POINTVECTOR3, f)
 
         # x = PointVector((6, 0, 2, 2, 4, 2, 4, 0, 6, 2, 0, 2, 5, 1, 1, 3, 4, 0, 2, 4), None)
         # print(x)
