@@ -1,1 +1,0 @@
-apply swap r1/r2 and sym diff to parallel classes individually, not to all five simulatenously (?)

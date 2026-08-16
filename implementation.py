@@ -260,7 +260,7 @@ def construct_pairs(relation1, relation2):
             GLOBAL_POINTVECTOR.add(pv)
 
 def main():
-    with open("logs.txt", "w") as f:
+    with open("implementation.txt", "w") as f:
         relations = Relation()
         pairs = [
             [relations.A, relations.A],
@@ -305,7 +305,13 @@ def main():
         # # for item2 in GLOBAL_POINTVECTOR2:
         # #     print(isEvenIntersection(item2))
         
-        run_collapse(GLOBAL_POINTVECTOR3, f)
+
+        #print(GLOBAL_POINTVECTOR3)
+        for vec in GLOBAL_POINTVECTOR3:
+            print(vec.v)
+
+        print(len(GLOBAL_POINTVECTOR3))
+        #run_collapse(GLOBAL_POINTVECTOR3, f)
 
         # x = PointVector((6, 0, 2, 2, 4, 2, 4, 0, 6, 2, 0, 2, 5, 1, 1, 3, 4, 0, 2, 4), None)
         # print(x)
