@@ -98,10 +98,14 @@ def main():
 
     GLOBAL_POINTVECTOR4 = list(filter_sdiff)
 
+    #printing invalid symdiff vex:
+    for ve in GLOBAL_POINTVECTOR3:
+        if ve not in GLOBAL_POINTVECTOR4:
+            print(ve)
 
     print(len(GLOBAL_POINTVECTOR4))
-    #genVecSpace(GLOBAL_POINTVECTOR4[random.randint(1,len(GLOBAL_POINTVECTOR4))])
-    genVecSpace(GLOBAL_POINTVECTOR4[0])
+    genVecSpace(GLOBAL_POINTVECTOR4[random.randint(1,len(GLOBAL_POINTVECTOR4))])
+    #genVecSpace(GLOBAL_POINTVECTOR4[0])
 
 if __name__ == "__main__":
     main()

@@ -104,6 +104,8 @@ def is_valid_chunk(chunk):
 
 def is_valid(pv):
     chunks = [pv[i:i+4] for i in range(0, 20, 4)]
+    if all(is_valid_chunk(c) for c in chunks) == False:
+        print('flag!!')
     return all(is_valid_chunk(c) for c in chunks)
 
 def collapse(seed_pv):
@@ -116,6 +118,9 @@ def collapse(seed_pv):
     mincount = 0
     while queue:
         current = queue.popleft()
+        if isEvenIntersection(current)==False or not isValidSymdiffProfile(current) or not is_valid(current):
+            print('EVIL EVIL EVIL')
+
         if isEvenIntersection(current)==False:
             print('Odd intersection', isEvenIntersection(current))
         
