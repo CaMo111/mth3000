@@ -243,7 +243,7 @@ def construct_intersections(w1, w2):
 
     return intersections
 
-def construct_pairs(relation1, relation2):
+def construct_pairs(relation1, relation2, sk_l=None):
     for idx, value in enumerate(set(permutations(relation2))):
         relo1 = relation1 
         relo2 = list(value)
@@ -258,6 +258,8 @@ def construct_pairs(relation1, relation2):
         for val in cart:
             pv = tuple(num for group in val for num in group)
             GLOBAL_POINTVECTOR.add(pv)
+            if sk_l != None:
+                sk_l.add(pv)
 
 def main():
     with open("implementation.txt", "w") as f:
@@ -288,35 +290,18 @@ def main():
         GLOBAL_POINTVECTOR2 = new_global_set
         GLOBAL_POINTVECTOR3 = filter_parity
 
-        # for vec in GLOBAL_POINTVECTOR3:
-        #     chunks = [tuple(vec[i:i+4]) for i in range(0, 20, 4)]
-        #     tupr1 = tuple()
-        #     tupr2 = tuple()
-        #     for chunk in chunks:
-        #         print(chunk)
-        #         tupr1 += (chunk[1] + chunk[3],)
-        #         tupr2 += (chunk[2] + chunk[3],)
-        #     WEIGHTDISTRIBUTIONS.append(tupr1)
-        #     WEIGHTDISTRIBUTIONS.append(tupr2)
 
-    
-        # print(len(GLOBAL_POINTVECTOR2), len(GLOBAL_POINTVECTOR3))
-
-        # # for item2 in GLOBAL_POINTVECTOR2:
-        # #     print(isEvenIntersection(item2))
-        
-
-        #print(GLOBAL_POINTVECTOR3)
+        # try filter out invalid symmdiff?
+        filter_sdiff = set()
         for vec in GLOBAL_POINTVECTOR3:
-            print(vec.v)
+            if isValidSymdiffProfile(vec):
+                filter_sdiff.add(vec)
 
-        print(len(GLOBAL_POINTVECTOR3))
-        #run_collapse(GLOBAL_POINTVECTOR3, f)
+        GLOBAL_POINTVECTOR4 = filter_sdiff        
+        run_collapse(GLOBAL_POINTVECTOR4, f)
 
-        # x = PointVector((6, 0, 2, 2, 4, 2, 4, 0, 6, 2, 0, 2, 5, 1, 1, 3, 4, 0, 2, 4), None)
-        # print(x)
-        # y = PointVector((4, 2, 4, 0, 3, 1, 3, 3, 5, 3, 1, 1, 2, 4, 4, 0, 2, 4, 2, 2), x.history, 'permute')
-        # print(y)
+        #print(len(GLOBAL_POINTVECTOR3))
+
 
 if __name__ == "__main__":
     main()
