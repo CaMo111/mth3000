@@ -14,9 +14,17 @@ echo "MINION 3" >> consistent.min
 echo "**VARIABLES**" >> consistent.min
 
 # CONSTRUCT ALL 2^8 VARIABLES = 256 POINT TYPES ~=
+# I think 100 is wrong here? what should each point type be capped at ? eg each point time can be represented at least 0 times, ie 100 points, 256 point types, whats 
+# the upper bound tho? 100? 
 for ((i=0; i<256; i++)); do
-    var=$(printf "%08s\n" "$(echo "obase=2; $i" | bc)")
-    echo "BOUND X$var  {0..100}" >> consistent.min
+    var=$(printf "%08s\n" "$(echo "obase=2; $i" | bc)") # enumerate all 2^8=256 pv's 
+    echo "BOUND X$var {0..10}" >> consistent.min
 done
 
-exec /Users/ncul0004/codezone/mth3000/minion/bin/minion ./consistent.min
+
+echo "**CONSTRAINTS**" >> consistent.min
+
+# ADD CONSTRAINTS for this PV. I have no clue how to do this right now... 
+
+
+exec "$PWD"/minion/bin/minion ./consistent.min

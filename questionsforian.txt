@@ -1,0 +1,4 @@
+
+- why do we only have 2^8 point types (variables)? instead of 2^10? What do these variables, and each bit in them represent?
+- what is the upper bound for each point (type)? ie for a single point type `BOUND X11111000 {0..10}` I currently set this between satisfied 0 times, and maximally 10 times.
+- how do we make the constraints?.. I understand the constraints are dependant on the equviliance class, but not quite sure how that fits in with these 256 variables.
