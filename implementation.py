@@ -269,13 +269,21 @@ def construct_pairs(relation1, relation2, sk_l=None):
 def main():
     with open("implementation.txt", "w") as f:
         relations = Relation()
+        # pairs = [
+        #     [relations.A, relations.A],
+        #     [relations.A, relations.B],
+        #     [relations.A, relations.C],
+        #     [relations.B, relations.B],
+        #     [relations.B, relations.C],
+        #     [relations.C, relations.C]
+        # ]
         pairs = [
-            [relations.A, relations.A],
-            [relations.A, relations.B],
-            [relations.A, relations.C],
-            [relations.B, relations.B],
-            [relations.B, relations.C],
-            [relations.C, relations.C]
+        [relations.A, relations.A],
+        [relations.B, relations.A],
+        [relations.C, relations.A],
+        [relations.B, relations.B],
+        [relations.C, relations.B],
+        [relations.C, relations.C]
         ]
         #print(combinations((relations.A, relations.B, relations.C)))
         for lst in pairs:
@@ -302,7 +310,9 @@ def main():
             if isValidSymdiffProfile(vec):
                 filter_sdiff.add(vec)
 
-        GLOBAL_POINTVECTOR4 = filter_sdiff        
+        GLOBAL_POINTVECTOR4 = filter_sdiff     
+
+        print(len(GLOBAL_POINTVECTOR4))   
         run_collapse(GLOBAL_POINTVECTOR4, f)
 
         #print(len(GLOBAL_POINTVECTOR3))

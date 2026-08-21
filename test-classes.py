@@ -64,12 +64,20 @@ def main():
             
             
     relations = Relation()
-    pairs = [
+    # pairs = [
+    #     [relations.A, relations.A],
+    #     [relations.A, relations.B],
+    #     [relations.A, relations.C],
+    #     [relations.B, relations.B],
+    #     [relations.B, relations.C],
+    #     [relations.C, relations.C]
+    # ]
+        pairs = [
         [relations.A, relations.A],
-        [relations.A, relations.B],
-        [relations.A, relations.C],
+        [relations.B, relations.A],
+        [relations.C, relations.A],
         [relations.B, relations.B],
-        [relations.B, relations.C],
+        [relations.C, relations.B],
         [relations.C, relations.C]
     ]
     #print(combinations((relations.A, relations.B, relations.C)))
